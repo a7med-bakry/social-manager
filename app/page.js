@@ -1,21 +1,51 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-const initialAccounts = [
-  { id: 1, platform: "Instagram", name: "No account connected", handle: "", status: "Not connected" },
-  { id: 2, platform: "TikTok", name: "No account connected", handle: "", status: "Not connected" }
+const platformDefaults = [
+  { id: "instagram-placeholder", platform: "Instagram", name: "No account connected", handle: "", status: "Not connected" },
+  { id: "tiktok-placeholder", platform: "TikTok", name: "No account connected", handle: "", status: "Not connected" }
 ];
 
 export default function Home() {
-  const [accounts] = useState(initialAccounts);
+  const [accounts, setAccounts] = useState([]);
+  const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [active, setActive] = useState("dashboard");
   const [showAdd, setShowAdd] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState("TikTok");
 
+  const loadAccounts = async () => {
+    try {
+      const response = await fetch("/api/accounts", { cache: "no-store" });
+      if (!response.ok) throw new Error("Failed to load accounts");
+      const data = await response.json();
+      setAccounts(data.accounts || []);
+    } catch {
+      setAccounts([]);
+    } finally {
+      setLoadingAccounts(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAccounts();
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("connected") === "tiktok") {
+      window.history.replaceState({}, "", "/");
+    }
+  }, []);
+
   const startConnect = () => {
     if (selectedPlatform === "TikTok") window.location.href = "/auth/tiktok";
   };
+
+  const visibleAccounts = loadingAccounts
+    ? []
+    : accounts.length
+      ? accounts
+      : platformDefaults;
+
+  const connectedCount = accounts.length;
 
   return (
     <main className="shell">
@@ -41,40 +71,48 @@ export default function Home() {
         </header>
 
         <div className="stats">
-          <div className="stat"><span>Connected accounts</span><strong>0</strong></div>
+          <div className="stat"><span>Connected accounts</span><strong>{connectedCount}</strong></div>
           <div className="stat"><span>Posts today</span><strong>0</strong></div>
           <div className="stat"><span>Actions today</span><strong>0</strong></div>
         </div>
 
         <section className="panel">
           <div className="panelHead">
-            <div><h2>Accounts</h2><p className="muted">Add an account and sign in on the platform's official authorization page.</p></div>
+            <div><h2>Accounts</h2><p className="muted">Connected accounts are saved to your dashboard after TikTok authorization.</p></div>
             <button className="smallPrimary" onClick={() => setShowAdd(true)}>Add account</button>
           </div>
 
           <div className="accountGrid">
-            {accounts.map(account => (
-              <article className="account" key={account.id}>
-                <div className={"icon " + account.platform.toLowerCase()}>{account.platform === "Instagram" ? "IG" : "TT"}</div>
-                <div className="accountInfo">
-                  <h3>{account.platform}</h3>
-                  <p>{account.name}</p>
-                  <small>{account.handle}</small>
-                </div>
-                <div className="accountBottom">
-                  <span className="status">{account.status}</span>
-                  <button onClick={() => { setSelectedPlatform(account.platform); setShowAdd(true); }}>
-                    Connect
-                  </button>
-                </div>
-              </article>
-            ))}
+            {visibleAccounts.map(account => {
+              const isPlaceholder = String(account.id).includes("placeholder");
+              const platform = account.platform || "";
+              const label = isPlaceholder ? account.name : (account.display_name || account.username || "TikTok account");
+              const handle = isPlaceholder ? account.handle : (account.username ? "@" + account.username.replace(/^@/, "") : "");
+              const status = isPlaceholder ? account.status : (account.status || "Connected");
+
+              return (
+                <article className="account" key={account.id}>
+                  <div className={"icon " + platform.toLowerCase()}>{platform === "Instagram" ? "IG" : "TT"}</div>
+                  <div className="accountInfo">
+                    <h3>{platform}</h3>
+                    <p>{label}</p>
+                    <small>{handle}</small>
+                  </div>
+                  <div className="accountBottom">
+                    <span className="status">{status}</span>
+                    <button onClick={() => { setSelectedPlatform(platform); setShowAdd(true); }}>
+                      {isPlaceholder ? "Connect" : "Manage"}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         </section>
 
         <section className="panel">
           <div className="panelHead">
-            <div><h2>Quick actions</h2><p className="muted">Posting and comment controls will appear after accounts are connected.</p></div>
+            <div><h2>Quick actions</h2><p className="muted">Posting and comment controls will appear after the required TikTok permissions are approved.</p></div>
           </div>
           <div className="actions">
             <button disabled>New post</button>
@@ -85,7 +123,7 @@ export default function Home() {
 
         <div className="notice">
           <strong>Security first</strong>
-          <span>The site never asks for or stores your Instagram/TikTok password. Login happens on the platform's own authorization page.</span>
+          <span>Your TikTok password is never sent to this site. Login and consent happen on TikTok, while OAuth tokens are kept server-side.</span>
         </div>
       </section>
 
@@ -113,7 +151,7 @@ export default function Home() {
 
             <div className="modalInfo">
               <strong>What happens next?</strong>
-              <p>You will be sent to {selectedPlatform}'s official login/authorization page. After you approve access, the account will return to this dashboard.</p>
+              <p>You will be sent to TikTok's official authorization page. After you approve access, the account will be saved and shown in this dashboard.</p>
             </div>
 
             {selectedPlatform === "Instagram" ? (
