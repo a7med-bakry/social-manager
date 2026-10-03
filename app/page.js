@@ -3,13 +3,19 @@
 import { useState } from "react";
 
 const initialAccounts = [
-  { id: 1, platform: "Instagram", name: "No accounts connected", handle: "", status: "Not connected" },
-  { id: 2, platform: "TikTok", name: "No accounts connected", handle: "", status: "Not connected" }
+  { id: 1, platform: "Instagram", name: "No account connected", handle: "", status: "Not connected" },
+  { id: 2, platform: "TikTok", name: "No account connected", handle: "", status: "Not connected" }
 ];
 
 export default function Home() {
   const [accounts] = useState(initialAccounts);
   const [active, setActive] = useState("dashboard");
+  const [showAdd, setShowAdd] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState("TikTok");
+
+  const startConnect = () => {
+    if (selectedPlatform === "TikTok") window.location.href = "/auth/tiktok";
+  };
 
   return (
     <main className="shell">
@@ -31,7 +37,7 @@ export default function Home() {
             <h1>{active === "dashboard" ? "Dashboard" : active}</h1>
             <p className="muted">Manage your connected social accounts from one place.</p>
           </div>
-          <button className="primary" onClick={() => setActive("accounts")}>+ Add account</button>
+          <button className="primary" onClick={() => setShowAdd(true)}>+ Add account</button>
         </header>
 
         <div className="stats">
@@ -42,8 +48,10 @@ export default function Home() {
 
         <section className="panel">
           <div className="panelHead">
-            <div><h2>Accounts</h2><p className="muted">Connect accounts through their official authorization pages.</p></div>
+            <div><h2>Accounts</h2><p className="muted">Add an account and sign in on the platform's official authorization page.</p></div>
+            <button className="smallPrimary" onClick={() => setShowAdd(true)}>Add account</button>
           </div>
+
           <div className="accountGrid">
             {accounts.map(account => (
               <article className="account" key={account.id}>
@@ -55,11 +63,9 @@ export default function Home() {
                 </div>
                 <div className="accountBottom">
                   <span className="status">{account.status}</span>
-                  {account.platform === "TikTok" ? (
-                    <a className="connectButton" href="/auth/tiktok">Connect</a>
-                  ) : (
-                    <button disabled>Connect after Meta setup</button>
-                  )}
+                  <button onClick={() => { setSelectedPlatform(account.platform); setShowAdd(true); }}>
+                    Connect
+                  </button>
                 </div>
               </article>
             ))}
@@ -67,7 +73,9 @@ export default function Home() {
         </section>
 
         <section className="panel">
-          <div className="panelHead"><div><h2>Quick actions</h2><p className="muted">Posting and comment controls will appear after OAuth accounts are connected.</p></div></div>
+          <div className="panelHead">
+            <div><h2>Quick actions</h2><p className="muted">Posting and comment controls will appear after accounts are connected.</p></div>
+          </div>
           <div className="actions">
             <button disabled>New post</button>
             <button disabled>Comment from account</button>
@@ -77,9 +85,45 @@ export default function Home() {
 
         <div className="notice">
           <strong>Security first</strong>
-          <span>Passwords are never collected. OAuth tokens and client secrets stay server-side.</span>
+          <span>The site never asks for or stores your Instagram/TikTok password. Login happens on the platform's own authorization page.</span>
         </div>
       </section>
+
+      {showAdd && (
+        <div className="modalBackdrop" onClick={() => setShowAdd(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modalHead">
+              <div>
+                <p className="eyebrow">ADD ACCOUNT</p>
+                <h2>Connect a social account</h2>
+              </div>
+              <button className="closeButton" onClick={() => setShowAdd(false)}>×</button>
+            </div>
+
+            <div className="platformChoices">
+              <button className={selectedPlatform === "Instagram" ? "platformChoice selected" : "platformChoice"} onClick={() => setSelectedPlatform("Instagram")}>
+                <span className="choiceIcon instagram">IG</span>
+                <span><strong>Instagram</strong><small>Sign in with Instagram</small></span>
+              </button>
+              <button className={selectedPlatform === "TikTok" ? "platformChoice selected" : "platformChoice"} onClick={() => setSelectedPlatform("TikTok")}>
+                <span className="choiceIcon tiktok">TT</span>
+                <span><strong>TikTok</strong><small>Sign in with TikTok</small></span>
+              </button>
+            </div>
+
+            <div className="modalInfo">
+              <strong>What happens next?</strong>
+              <p>You will be sent to {selectedPlatform}'s official login/authorization page. After you approve access, the account will return to this dashboard.</p>
+            </div>
+
+            {selectedPlatform === "Instagram" ? (
+              <button className="modalConnect disabledConnect" disabled>Instagram setup required</button>
+            ) : (
+              <button className="modalConnect" onClick={startConnect}>Continue with TikTok</button>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   );
 }
