@@ -8,16 +8,8 @@ const initialAccounts = [
 ];
 
 export default function Home() {
-  const [accounts, setAccounts] = useState(initialAccounts);
+  const [accounts] = useState(initialAccounts);
   const [active, setActive] = useState("dashboard");
-
-  function addAccount(platform) {
-    setAccounts(prev => prev.map(a =>
-      a.platform === platform
-        ? { ...a, name: "Ready for OAuth connection", handle: "Connect through official login", status: "Ready" }
-        : a
-    ));
-  }
 
   return (
     <main className="shell">
@@ -50,7 +42,7 @@ export default function Home() {
 
         <section className="panel">
           <div className="panelHead">
-            <div><h2>Accounts</h2><p className="muted">Connect accounts using their official authorization flow.</p></div>
+            <div><h2>Accounts</h2><p className="muted">Connect accounts through their official authorization pages.</p></div>
           </div>
           <div className="accountGrid">
             {accounts.map(account => (
@@ -63,7 +55,11 @@ export default function Home() {
                 </div>
                 <div className="accountBottom">
                   <span className="status">{account.status}</span>
-                  <button onClick={() => addAccount(account.platform)}>Connect</button>
+                  {account.platform === "TikTok" ? (
+                    <a className="connectButton" href="/auth/tiktok">Connect</a>
+                  ) : (
+                    <button disabled>Connect after Meta setup</button>
+                  )}
                 </div>
               </article>
             ))}
@@ -71,7 +67,7 @@ export default function Home() {
         </section>
 
         <section className="panel">
-          <div className="panelHead"><div><h2>Quick actions</h2><p className="muted">Actions will become available after accounts are connected.</p></div></div>
+          <div className="panelHead"><div><h2>Quick actions</h2><p className="muted">Posting and comment controls will appear after OAuth accounts are connected.</p></div></div>
           <div className="actions">
             <button disabled>New post</button>
             <button disabled>Comment from account</button>
@@ -81,7 +77,7 @@ export default function Home() {
 
         <div className="notice">
           <strong>Security first</strong>
-          <span>We will use official OAuth authorization. Your Instagram/TikTok passwords will never be stored in this dashboard.</span>
+          <span>Passwords are never collected. OAuth tokens and client secrets stay server-side.</span>
         </div>
       </section>
     </main>
